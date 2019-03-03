@@ -1,0 +1,17 @@
+src/cool/classhierarchy/ - AST nodes definitions
+
+src/cool/compiler/Compiler.java - Compiler code
+
+src/cool/lexer/CoolLexer.g4 - Lexer definition
+
+src/cool/parser/CoolParser.g4 - Parser definition
+
+src/cool/structures/ - Clases used for semantical analysis, scopes and symbol solving
+
+src/cool/structures/ProgramBaseVisitor.java - AST visitor, the one I used
+
+! The compiler can't handle "case" syntactic structures because the code generation wasn't implemented for this structure.
+
+This compiler generates MIPS assembly code. 
+
+Code generation templates used are here: src/templates.stg 
