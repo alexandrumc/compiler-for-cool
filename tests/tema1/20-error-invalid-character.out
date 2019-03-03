@@ -1,0 +1,3 @@
+"20-error-invalid-character.cl", line 1:1, Syntax error: mismatched input 'class' expecting CLASS
+line 2:13 token recognition error at: '#'
+Compilation halted

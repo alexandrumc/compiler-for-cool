@@ -1,0 +1,442 @@
+program(d, int, string, bool) ::= <<
+.data
+.align  2
+.globl  class_nameTab
+.globl  Int_protObj
+.globl  String_protObj
+.globl  bool_const0
+.globl  bool_const1
+.globl  Main_protObj
+.globl  _int_tag
+.globl  _string_tag
+.globl  _bool_tag
+_int_tag:
+    .word   <int>
+_string_tag:
+    .word   <string>
+_bool_tag:
+    .word   <bool>
+<sequence(d)>
+>>
+
+
+gen_method(class, name, var_dec, body, var_inc, param_inc) ::= <<
+<class>.<name>:
+    addiu   $sp $sp -12
+    sw      $fp 12($sp)
+    sw      $s0 8($sp)
+    sw      $ra 4($sp)
+    addiu   $fp $sp 4
+    <var_dec>
+    move    $s0 $a0
+    <body>
+    <var_inc>
+    lw      $fp 12($sp)
+    lw      $s0 8($sp)
+    lw      $ra 4($sp)
+    addiu   $sp $sp 12
+    <param_inc>
+    jr      $ra
+>>
+
+id(offset, location) ::= <<
+lw      $a0 <offset>($<location>)
+>>
+
+assign(expr, location, offset) ::= <<
+<expr>
+sw      $a0 <offset>($<location>)
+>>
+
+let(var, body) ::= <<
+<sequence(var)>
+<body>
+>>
+
+self() ::= <<
+move    $a0 $s0
+>>
+
+stack_inc(val) ::= <<
+	addiu $sp $sp <val>
+>>
+
+stack_dec(val) ::= <<
+	addiu $sp $sp -<val>
+>>
+
+dynamic_disp(obj, param, m_offset, label, file, line) ::= <<
+<sequence(param)>
+<obj>
+bnez    $a0 <label>
+la      $a0 <file>
+li      $t1 <line>
+jal     _dispatch_abort
+<label>:
+lw      $t1 8($a0)
+lw      $t1 <m_offset>($t1)
+jalr    $t1
+>>
+
+load_param(param) ::= <<
+	<param>
+    sw      $a0 0($sp)
+    addiu   $sp $sp -4
+>>
+
+static_disp(obj, class, param, m_offset, label, file, line) ::= <<
+	<param>
+	<obj>
+	bnez    $a0 <label>
+	la      $a0 <file>
+    li      $t1 <line>
+    jal     _dispatch_abort
+<label>:
+	la      $t1 <class>_dispTab
+	lw      $t1 <m_offset>($t1)
+    jalr    $t1
+>>
+
+const_load(tag) ::= <<
+la	    $a0 <tag>
+>>
+
+atrib_init(offset) ::= <<
+sw	    $a0 <offset>($s0)
+>>
+
+isvoid(expr, label) ::= <<
+<expr>
+move    $t1 $a0
+la      $a0 bool_const1
+beqz    $t1 <label>
+la      $a0 bool_const0
+<label>:
+>>
+
+operation(op, left_op, right_op) ::= <<
+<left_op>
+sw      $a0 0($sp)
+addiu   $sp $sp -4
+<right_op>
+jal     Object.copy
+lw      $t1 4($sp)
+addiu   $sp $sp 4
+lw      $t1 12($t1)
+lw      $t2 12($a0)
+<op>     $t1 $t1 $t2
+sw      $t1 12($a0)
+>>
+
+not(expr, label) ::= <<
+<expr>
+lw      $t1 12($a0)
+la      $a0 bool_const1
+beqz    $t1 <label>
+la      $a0 bool_const0
+<label>:
+>>
+
+if(cond, thenBranch, elseBranch, else_label, end_label) ::= <<
+<cond>
+    lw      $t1 12($a0)
+    beqz    $t1 <else_label>
+<thenBranch>
+    b       <end_label>
+<else_label>:
+<elseBranch>
+<end_label>:
+>>
+
+text_begin() ::= <<
+    .globl  heap_start
+heap_start:
+    .word   0
+    .text
+    .globl  Int_init
+    .globl  String_init
+    .globl  Bool_init
+    .globl  Main_init
+    .globl  Main.main
+Object_init:
+    addiu   $sp $sp -12
+    sw      $fp 12($sp)
+    sw      $s0 8($sp)
+    sw      $ra 4($sp)
+    addiu   $fp $sp 4
+    move    $s0 $a0
+    move    $a0 $s0
+    lw      $fp 12($sp)
+    lw      $s0 8($sp)
+    lw      $ra 4($sp)
+    addiu   $sp $sp 12
+    jr      $ra
+IO_init:
+    addiu   $sp $sp -12
+    sw      $fp 12($sp)
+    sw      $s0 8($sp)
+    sw      $ra 4($sp)
+    addiu   $fp $sp 4
+    move    $s0 $a0
+    jal     Object_init
+    move    $a0 $s0
+    lw      $fp 12($sp)
+    lw      $s0 8($sp)
+    lw      $ra 4($sp)
+    addiu   $sp $sp 12
+    jr      $ra
+Int_init:
+    addiu   $sp $sp -12
+    sw      $fp 12($sp)
+    sw      $s0 8($sp)
+    sw      $ra 4($sp)
+    addiu   $fp $sp 4
+    move    $s0 $a0
+    jal     Object_init
+    move    $a0 $s0
+    lw      $fp 12($sp)
+    lw      $s0 8($sp)
+    lw      $ra 4($sp)
+    addiu   $sp $sp 12
+    jr      $ra
+String_init:
+    addiu   $sp $sp -12
+    sw      $fp 12($sp)
+    sw      $s0 8($sp)
+    sw      $ra 4($sp)
+    addiu   $fp $sp 4
+    move    $s0 $a0
+    jal     Object_init
+    move    $a0 $s0
+    lw      $fp 12($sp)
+    lw      $s0 8($sp)
+    lw      $ra 4($sp)
+    addiu   $sp $sp 12
+    jr      $ra
+Bool_init:
+    addiu   $sp $sp -12
+    sw      $fp 12($sp)
+    sw      $s0 8($sp)
+    sw      $ra 4($sp)
+    addiu   $fp $sp 4
+    move    $s0 $a0
+    jal     Object_init
+    move    $a0 $s0
+    lw      $fp 12($sp)
+    lw      $s0 8($sp)
+    lw      $ra 4($sp)
+    addiu   $sp $sp 12
+    jr      $ra
+>>
+
+obj_init(name, parent, e) ::= <<
+<name>_init:
+    addiu   $sp $sp -12
+    sw      $fp 12($sp)
+    sw      $s0 8($sp)
+    sw      $ra 4($sp)
+    addiu   $fp $sp 4
+    move    $s0 $a0
+    jal     <parent>_init
+    <e>
+    move    $a0 $s0
+    lw      $fp 12($sp)
+    lw      $s0 8($sp)
+    lw      $ra 4($sp)
+    addiu   $sp $sp 12
+    jr      $ra
+>>
+
+sequence(e) ::= "<e; separator=\"\n\">"
+
+word_declr(e) ::= <<
+.word   <e>
+>>
+
+classnametab(tag) ::= <<
+class_nameTab:
+	<sequence(tag)>
+>>
+
+classobjtab(tag) ::= <<
+class_objTab:
+	<sequence(tag)>
+>>
+
+dispTabBasic() ::= <<
+Object_dispTab:
+    .word   Object.abort
+    .word   Object.type_name
+    .word   Object.copy
+IO_dispTab:
+    .word   Object.abort
+    .word   Object.type_name
+    .word   Object.copy
+    .word   IO.out_string
+    .word   IO.out_int
+    .word   IO.in_string
+    .word   IO.in_int
+Int_dispTab:
+    .word   Object.abort
+    .word   Object.type_name
+    .word   Object.copy
+String_dispTab:
+    .word   Object.abort
+    .word   Object.type_name
+    .word   Object.copy
+    .word   String.length
+    .word   String.concat
+    .word   String.substr
+Bool_dispTab:
+    .word   Object.abort
+    .word   Object.type_name
+    .word   Object.copy
+>>
+
+dispTab(name, e) ::= <<
+<name>_dispTab:
+    <e>
+>>
+
+selftype() ::= <<
+la      $t1 class_objTab    
+lw      $t2 0($s0)          
+sll     $t2 $t2 3           
+addu    $t1 $t1 $t2        
+sw      $t1 0($sp)
+addiu   $sp $sp -4
+lw      $a0 0($t1)         
+jal     Object.copy
+lw      $t1 4($sp)
+addiu   $sp $sp 4
+lw      $t1 4($t1)          
+jalr    $t1
+>>
+
+new(class) ::= <<
+la      $a0 <class>_protObj
+jal     Object.copy
+jal     <class>_init
+>>
+
+tilda(expr) ::= <<
+<expr>
+jal     Object.copy
+lw      $t1 12($a0)
+neg     $t1 $t1
+sw      $t1 12($a0)
+>>
+
+eq(left_op, right_op, label) ::= <<
+<left_op>
+    sw      $a0 0($sp)
+    addiu   $sp $sp -4
+<right_op>
+    lw      $t1 4($sp)
+    addiu   $sp $sp 4
+    move    $t2 $a0
+    la      $a0 bool_const1
+    beq     $t1 $t2 <label>
+    la      $a1 bool_const0
+    jal     equality_test
+<label>:
+>>
+
+comp(op, left_op, right_op, label) ::= <<
+<left_op>
+    sw      $a0 0($sp)
+    addiu   $sp $sp -4
+<right_op>
+    lw      $t1 4($sp)
+    addiu   $sp $sp 4
+    lw      $t1 12($t1)
+    lw      $t2 12($a0)
+    la      $a0 bool_const1
+    <op>     $t1 $t2 <label>
+    la      $a0 bool_const0
+<label>:
+>>
+
+while(cond, body, cond_label, end_label) ::= <<
+<cond_label>:
+<cond>
+    lw      $t1 12($a0)
+    beqz    $t1 <end_label>
+<body>
+    b       <cond_label>
+<end_label>:
+    move    $a0 $zero
+>>
+
+
+protObj(name, index, dim, e) ::= <<
+<name>_protObj:
+	.word	<index>
+	.word	<dim>
+	.word	<name>_dispTab
+	<e>
+>>
+
+protObjBasic(io, int, string, bool) ::= <<
+Object_protObj:
+    .word   0
+    .word   3
+    .word   Object_dispTab
+
+IO_protObj:
+    .word   <io>
+    .word   3
+    .word   IO_dispTab
+
+Int_protObj:
+    .word   <int>
+    .word   4
+    .word   Int_dispTab
+    .word   0
+String_protObj:
+    .word   <string>
+    .word   5
+    .word   String_dispTab
+    .word   int_const0
+    .asciiz ""
+    .align  2
+Bool_protObj:
+    .word   <bool>
+    .word   4
+    .word   Bool_dispTab
+    .word   0
+>>
+
+str_const(index, word_dim, int_const_name, text, tag) ::= <<
+str_const<index>:
+    .word   <tag>
+    .word   <word_dim>
+    .word   String_dispTab
+    .word   <int_const_name>
+    .asciiz "<text>"
+    .align  2
+>>
+
+
+int_const(index, value, tag) ::= <<
+int_const<index>:
+    .word   <tag>
+    .word   4
+    .word   Int_dispTab
+    .word   <value>
+>>
+
+bool_const(tag) ::= <<
+bool_const0:
+    .word   <tag>
+    .word   4
+    .word   Bool_dispTab
+    .word   0
+bool_const1:
+    .word   <tag>
+    .word   4
+    .word   Bool_dispTab
+    .word   1
+>>
+
+
